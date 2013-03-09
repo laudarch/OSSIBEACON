@@ -10,8 +10,8 @@
 
 #include "ossi_2132.h"
 #include "ossi_timer.h"
-#include "ossi_morse.h"
-#include "ossi_gps.h"
+#include "beacon_morse.h"
+#include "beacon_gps.h"
 #include "clock.h"
 #include "system.h"
 #include "util.h"

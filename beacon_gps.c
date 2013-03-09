@@ -6,7 +6,7 @@
  *      Inspired by: http://rev0proto.com/wiki/index.php/Senior_Project / Justin Kenny
  */
 
-#include "ossi_gps.h"
+#include "beacon_gps.h"
 
 static volatile uint8_t gpsReadyFlag = 0;
 
