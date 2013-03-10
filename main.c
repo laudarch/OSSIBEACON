@@ -16,7 +16,8 @@ void main(void)
 	// test
 //	morse_init();
 
-	P3OUT &= PA_ON_PIN;
+	P3OUT &= ~PA_ON_PIN;
+	/*
 
 			P3OUT |= PA_ON_PIN;
 
@@ -40,12 +41,13 @@ void main(void)
 			// best pa level = 35 ~ 36
 			adf7012_setPALevel(35);
 			adf7012_OOK(1);
-
+*/
 
 
 	while(1)
 	{
 
+		__bis_SR_register(LPM3_bits + GIE);
 //		volatile uint8_t i;
 //					for (i = 0 ; i < 64; i++)
 //					{
