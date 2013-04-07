@@ -148,8 +148,8 @@ void adf7012_initRegisterZero(void) {
 }
 
 void adf7012_initRegisterOne(void) {
-    adf_config.r1.integer_n = 38;                              // Pre-set for 144.390 MHz APRS. Will be changed according tx frequency on the fly
-    adf_config.r1.fractional_n = 64;                          // Pre-set for 144.390 MHz APRS. Will be changed according tx frequency on the fly
+    adf_config.r1.integer_n = 38;                              // Pre-set for 145.980 MHz
+    adf_config.r1.fractional_n = 64;                          // Pre-set for 145.980 MHz APRS.
     adf_config.r1.prescaler = 0;                			   // 8/9 requires an integer_n > 91; 4/5 only requires integer_n > 31
 }
 

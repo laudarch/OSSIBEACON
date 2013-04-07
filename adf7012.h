@@ -84,6 +84,7 @@ void adf7012_init(void);
 void adf7012_initAllRegisters(void);
 void adf7012_writeAllRegisters(void);
 
+
 uint8_t adf7012_lock(void);
 void adf7012_findLock(void);
 
@@ -95,5 +96,8 @@ void adf7012_OOK(uint8_t val);
 void adf7012_setPAON(uint8_t val);
 
 void adf7012_setPALevel(uint8_t val);
+void adf7012_setPLL(uint8_t val);
+void adf7012_setVCO(uint8_t bias, uint8_t adj);
+void adf7012_setMuxout(uint8_t val);
 
 #endif /* ADF7012_H_ */

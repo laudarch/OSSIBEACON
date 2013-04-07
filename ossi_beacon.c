@@ -17,9 +17,11 @@ uint8_t beaconPacket[BEACON_PACKET_SIZE] ={0};
 static const uint8_t hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
 #define OSSI_HELLO_PACKET_SIZE (16)
-static const uint8_t ossiBeaconHello[OSSI_HELLO_PACKET_SIZE]={'D','E',' ','O','S','S','I','1',' ','A','N','Y','O','U','N','G'};
+static uint8_t ossiBeaconHello[OSSI_HELLO_PACKET_SIZE]={'D','E',' ','O','S','S','I','1',' ','A','N','Y','O','U','N','G'};
 
 static volatile uint8_t beaconMode;
+
+volatile uint8_t noMsgCnt; // counting how many msgs are not received for wakeup period
 
 void beacon_makePacket(uint8_t num);
 uint8_t beacon_morseSend(void);
@@ -47,6 +49,9 @@ void beacon_portSetup(void)
 	P1DIR = 0xFF & ~(BEACON_MUXOUT_PIN + BEACON_TXCLK_PIN); // ADF7012 TXCLK output is high. Beware!!! Why??
 	P2DIR = 0xFF & ~(ADC0_PIN+ADC1_PIN+PA_FAULT_PIN);
 	P3DIR = 0xFF & ~(I2C_SDA_PIN+I2C_SCL_PIN+BEACON_CWCONTROL_PIN+UART_RXD_PIN); // make sure I2C pins are input by default
+
+	P3OUT &= ~PA_ON_PIN;
+	P3DIR |=PA_ON_PIN;
 }
 
 void beacon_wdtSetup(void)
@@ -100,8 +105,6 @@ void beacon_init(void)
 	P3OUT &= ~LED_PIN;
 	P3DIR |= LED_PIN;
 
-	P3OUT &= ~BEACON_CWCONTROL_PIN;
-	P3DIR |= BEACON_CWCONTROL_PIN;
 	// initi beacon data and status
 	volatile uint8_t i;
 	for(i = 0; i< OSSI_DATA_SIZE ; i++)
@@ -118,6 +121,7 @@ void beacon_init(void)
 	i2c_portSetup();
 	i2c_slaveInit(BEACON_ADDR, OSSI_DATA_SIZE, obcData);
 	i2c_slaveStart();
+	noMsgCnt = 0;
 }
 
 void beacon_setExtWdt(uint8_t val)
@@ -135,7 +139,6 @@ void beacon_setExtWdt(uint8_t val)
 void beacon_setExtWdtToggle(void)
 {
 	P2OUT ^= EXTWDT_PIN;
-	P3OUT ^= BEACON_CWCONTROL_PIN;
 }
 
 uint8_t beacon_getMorseStatus(void)
@@ -145,17 +148,36 @@ uint8_t beacon_getMorseStatus(void)
 
 uint8_t beacon_morseSend(void)
 {
-	uint8_t result;
-	morse_init();
+	volatile uint8_t result;
+	//morse_init();
+	P3OUT |= PA_ON_PIN;
+	morse_initFix();
 	morse_send(beaconPacket);
 
 	if (result == ERROR) {return ERROR;}
 	return SUCCESS;
 }
 
+uint8_t beacon_morseHelloSend(void)
+{
+	volatile uint8_t result;
+	//morse_init();
+	P3OUT |= PA_ON_PIN;
+	morse_initFix();
+	morse_send(ossiBeaconHello);
+
+	if (result == ERROR) {return ERROR;}
+	return SUCCESS;
+}
+
+
 uint8_t beacon_morseStop(void)
 {
+	volatile uint8_t result;
 	morse_stop();
+	P3OUT &= ~PA_ON_PIN;
+	if (result == ERROR) {return ERROR;}
+	return SUCCESS;
 }
 
 void beacon_updateOBCData(uint8_t intAddr, uint8_t value)
@@ -176,8 +198,6 @@ void beacon_taskSchedulePeriod(uint8_t sec)
 
 void beacon_taskSchedule(void)
 {
-//	beacon_setExtWdtToggle();
-
 	if (beacon_getOBCData(BEACON_CMD1_ADDR) == MORSE_SEND_START)
 	{
 		// when command is received,
@@ -198,6 +218,23 @@ void beacon_taskSchedule(void)
 		// stop morse after sending all packets
 		beacon_morseStop();
 		beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENT);
+	}
+	else
+	{
+		noMsgCnt++;
+		if(noMsgCnt > 2)
+		{
+			noMsgCnt = 0;
+			// send only anyoung packet
+			beacon_makePacket(0);
+			beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENDING);
+			beacon_setExtWdtToggle();
+			beacon_morseHelloSend();
+			beacon_setExtWdtToggle();
+			beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENT);
+			beacon_morseStop();
+
+		}
 	}
 
 }

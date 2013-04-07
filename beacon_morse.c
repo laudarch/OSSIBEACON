@@ -58,6 +58,25 @@ uint16_t morse_setDataSizeFrom(uint8_t * bytes)
 	return bytes_size;
 }
 
+// Tihs is fixed version for 100mW RF out at 145.980MHz
+void morse_initFix(void)
+{
+	adf7012_initAllRegisters();
+	adf7012_setVCO(6, 0); // get VCO set values when PLL is locked from adf7012_lock();
+
+	adf7012_setPLL(1);
+	adf7012_setMuxout(ADF_MUXOUT_DIGITAL_LOCK);
+	// best pa level = 35 ~ 36
+	adf7012_setPALevel(35);
+	adf7012_setPAON(1);
+
+	adf7012_enable();
+	adf7012_writeAllRegisters();
+	morse_setSendFlag();
+
+}
+
+
 void morse_init(void)
 {
 	// TODO: add extra initialization process if needed
