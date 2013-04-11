@@ -26,6 +26,8 @@ volatile uint8_t noMsgCnt; // counting how many msgs are not received for wakeup
 void beacon_makePacket(uint8_t num);
 uint8_t beacon_morseSend(void);
 
+static volatile uint8_t cmdReceivedFlag;
+
 void beacon_portSetup(void)
 {
 	// default GPIO setup
@@ -122,6 +124,7 @@ void beacon_init(void)
 	i2c_slaveInit(BEACON_ADDR, OSSI_DATA_SIZE, obcData);
 	i2c_slaveStart();
 	noMsgCnt = 0;
+	cmdReceivedFlag = 0;
 }
 
 void beacon_setExtWdt(uint8_t val)
@@ -200,6 +203,7 @@ void beacon_taskSchedule(void)
 {
 	if (beacon_getOBCData(BEACON_CMD1_ADDR) == MORSE_SEND_START)
 	{
+		cmdReceivedFlag = 1;
 		// when command is received,
 		// let OBC know that the command is read
 		beacon_updateOBCData(BEACON_CMD1_ADDR, BEACON_CMD1_CLEAR);
@@ -219,7 +223,7 @@ void beacon_taskSchedule(void)
 		beacon_morseStop();
 		beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENT);
 	}
-	else
+	else if(cmdReceivedFlag == 1)// if i2c data is just obc data, then ignore
 	{
 		noMsgCnt++;
 		if(noMsgCnt > 2)
@@ -227,11 +231,13 @@ void beacon_taskSchedule(void)
 			noMsgCnt = 0;
 			// send only anyoung packet
 			beacon_makePacket(0);
-			beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENDING);
+			beacon_updateOBCData(BEACON_CMD1_ADDR, BEACON_STANDALONE);
+			// stand alone mode don't touch the sending status
+			//beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENDING);
 			beacon_setExtWdtToggle();
 			beacon_morseHelloSend();
 			beacon_setExtWdtToggle();
-			beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENT);
+			//beacon_updateOBCData(BEACON_TX_STATUS_ADDR, SENT);
 			beacon_morseStop();
 
 		}
